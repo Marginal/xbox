@@ -6,7 +6,9 @@ import pytest
 
 from xbox.resource import Clip, GamerProfile
 
-here = lambda path: '%s/%s' % (os.path.dirname(__file__), path)
+
+def here(path):
+    return '%s/%s' % (os.path.dirname(__file__), path)
 
 
 with Betamax.configure() as config:

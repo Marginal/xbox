@@ -18,6 +18,9 @@ setup(
         'xbox.vendor.requests': ['*.pem'],
     },
     keywords='xbox one microsoft',
+    install_requires=[
+      'requests>=2.6.0'
+    ],
     tests_require=['pytest==2.6.2', 'tox==1.7.3'],
     license='MIT',
     zip_safe=False,

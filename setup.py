@@ -1,13 +1,17 @@
 from setuptools import setup, find_packages
+import re
+from os.path import join
 
-import xbox
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
+with open(join('xbox', '__init__.py')) as fh:
+    __VERSION__ = re.search(r"__VERSION__ = '([^']+)'", fh.read()).group(1)
+
 setup(
     name='xbox',
-    version=xbox.__VERSION__,
+    version=__VERSION__,
     url='https://github.com/buttscicles/xbox/',
     author='Joe Alcorn',
     author_email='joealcorn123@gmail.com',

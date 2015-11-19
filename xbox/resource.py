@@ -127,6 +127,14 @@ class GamerProfile(object):
         '''
         return Clip.latest_from_user(self)
 
+    def screenshots(self):
+        '''
+        Gets the latest screenshots made by this user
+
+        :returns: Iterator of :class:`~xbox.Screenshot` instances
+        '''
+        return Screenshot.latest_from_user(self)
+
     def __repr__(self):
         return '<xbox.resource.GamerProfile: %s (%s)>' % (
             self.gamertag, self.xuid
@@ -270,6 +278,95 @@ class Clip(object):
         url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/clips'
         resp = xbox.client._get(url % user.xuid)
         data = resp.json()
+
         for clip in data['gameClips']:
             if clip['state'] != 'PendingUpload' or include_pending:
                 yield cls(user, clip)
+
+
+class Screenshot(object):
+    '''
+    Represents a single game screenshot.
+
+    :var user: User that made the screenshot
+    :var string clip_id: Unique id of the screenshot
+    :var string scid: Unique SCID of the screenshot
+    :var string duration: Duration, in seconds, of the screenshot
+    :var string name: Name of the screenshot. Can be ``''``
+    :var bool saved: Whether the user has saved the screenshot.
+        Screenshots that aren't saved eventually expire
+    :var string state:
+    :var string views: Number of views the screenshot has had
+    :var string rating: Screenshot rating
+    :var string ratings: Number of ratings the screenshot has received
+    :var string caption: User-defined screenshot caption
+    :var dict thumbnails: Thumbnail URLs for the screenshot
+    :var datetime recorded: Date and time screenshot was made
+    :var string media_url: Video screenshot URL
+
+    '''
+
+    def __init__(self, user, data):
+        self.raw_json = data
+        self.user = user
+
+        self.screenshot_id = data['screenshotId']
+        self.scid = data['scid']
+        self.resolution = (data['resolutionWidth'], data['resolutionHeight'])
+        self.name = data['screenshotName']
+        self.saved = data['savedByUser']
+        self.state = data['state']
+        self.views = data['views']
+        self.rating = data['rating']
+        self.ratings = data['ratingCount']
+        self.caption = data['userCaption']
+        self.thumbnails = DotNotationDict()
+        self.recorded = datetime.strptime(
+            data['dateTaken'], '%Y-%m-%dT%H:%M:%SZ'
+        )
+
+        # thumbnails and media_url may not yet exist
+        # if the state of the clip is PendingUpload
+        self.thumbnails.small = None
+        self.thumbnails.large = None
+        for thumb in data['thumbnails']:
+            if thumb['thumbnailType'] == 'Small':
+                self.thumbnails.small = thumb['uri']
+            elif thumb['thumbnailType'] == 'Large':
+                self.thumbnails.large = thumb['uri']
+
+        self.media_url = None
+        for uri in data['screenshotUris']:
+            if uri['uriType'] == 'Download':
+                self.media_url = uri['uri']
+
+    def __getstate__(self):
+        return (self.raw_json, self.user)
+
+    def __setstate__(self, data):
+        screenshot_data = data[0]
+        user = data[1]
+        self.__init__(user, screenshot_data)
+
+    @classmethod
+    @authenticates
+    def latest_from_user(cls, user, include_pending=False):
+        '''
+        Gets all screenshots, saved and unsaved
+
+        :param user: :class:`~xbox.GamerProfile` instance
+        :param bool include_pending: whether to ignore screenshots that are not
+            yet uploaded. These screenshots will have thumbnails and media_url
+            set to ``None``
+
+        :returns: Iterator of :class:`~xbox.Screenshot` instances
+        '''
+
+        url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/screenshots'
+        resp = xbox.client._get(url % user.xuid)
+        data = resp.json()
+
+        for screenshot in data['screenshots']:
+            if screenshot['state'] != 'PendingUpload' or include_pending:
+                yield cls(user, screenshot)
+

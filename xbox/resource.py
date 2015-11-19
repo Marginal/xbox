@@ -369,4 +369,3 @@ class Screenshot(object):
         for screenshot in data['screenshots']:
             if screenshot['state'] != 'PendingUpload' or include_pending:
                 yield cls(user, screenshot)
-

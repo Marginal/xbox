@@ -256,8 +256,15 @@ class Clip(object):
 
         url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/clips/saved'
         resp = xbox.client._get(url % user.xuid)
-        data = resp.json()
-        for clip in data['gameClips']:
+        json = resp.json()
+        data = json['gameClips']
+
+        while json['pagingInfo']['continuationToken']:
+            resp = xbox.client._get(url % user.xuid + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
+            json = resp.json()
+            data.append(json['gameClips'])
+
+        for clip in data:
             if clip['state'] != 'PendingUpload' or include_pending:
                 yield cls(user, clip)
 
@@ -277,9 +284,15 @@ class Clip(object):
 
         url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/clips'
         resp = xbox.client._get(url % user.xuid)
-        data = resp.json()
+        json = resp.json()
+        data = json['gameClips']
 
-        for clip in data['gameClips']:
+        while json['pagingInfo']['continuationToken']:
+            resp = xbox.client._get(url % user.xuid + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
+            json = resp.json()
+            data += json['gameClips']
+
+        for clip in data:
             if clip['state'] != 'PendingUpload' or include_pending:
                 yield cls(user, clip)
 
@@ -364,8 +377,14 @@ class Screenshot(object):
 
         url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/screenshots'
         resp = xbox.client._get(url % user.xuid)
-        data = resp.json()
+        json = resp.json()
+        data = json['screenshots']
 
-        for screenshot in data['screenshots']:
+        while json['pagingInfo']['continuationToken']:
+            resp = xbox.client._get(url % user.xuid + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
+            json = resp.json()
+            data += json['screenshots']
+
+        for screenshot in data:
             if screenshot['state'] != 'PendingUpload' or include_pending:
                 yield cls(user, screenshot)

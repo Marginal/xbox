@@ -119,21 +119,23 @@ class GamerProfile(object):
         user = raw_json['profileUsers'][0]
         return cls(user['id'], user['settings'], raw_json)
 
-    def clips(self):
+    def clips(self, titleId=None):
         '''
         Gets the latest clips made by this user
+        :param int or string titleId: Restrict to a single game title
 
         :returns: Iterator of :class:`~xbox.Clip` instances
         '''
-        return Clip.latest_from_user(self)
+        return Clip.latest_from_user(self, titleId=titleId)
 
-    def screenshots(self):
+    def screenshots(self, titleId=None):
         '''
         Gets the latest screenshots made by this user
+        :param int or string titleId: Restrict to a single game title
 
         :returns: Iterator of :class:`~xbox.Screenshot` instances
         '''
-        return Screenshot.latest_from_user(self)
+        return Screenshot.latest_from_user(self, titleId=titleId)
 
     def __repr__(self):
         return '<xbox.resource.GamerProfile: %s (%s)>' % (
@@ -243,7 +245,7 @@ class Clip(object):
 
     @classmethod
     @authenticates
-    def saved_from_user(cls, user, include_pending=False):
+    def saved_from_user(cls, user, include_pending=False, titleId=None):
         '''
         Gets all clips 'saved' by a user.
 
@@ -251,16 +253,20 @@ class Clip(object):
         :param bool include_pending: whether to ignore clips that are not
             yet uploaded. These clips will have thumbnails and media_url
             set to ``None``
+        :param int or string titleId: Restrict to a single game title
         :returns: Iterator of :class:`~xbox.Clip` instances
         '''
 
-        url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/clips/saved'
-        resp = xbox.client._get(url % user.xuid)
+        if titleId:
+            url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/titles/%s/clips/saved' % (user.xuid, titleId)
+        else:
+            url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/clips/saved' % user.xuid
+        resp = xbox.client._get(url)
         json = resp.json()
         data = json['gameClips']
 
         while json['pagingInfo']['continuationToken']:
-            resp = xbox.client._get(url % user.xuid + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
+            resp = xbox.client._get(url + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
             json = resp.json()
             data.append(json['gameClips'])
 
@@ -270,7 +276,7 @@ class Clip(object):
 
     @classmethod
     @authenticates
-    def latest_from_user(cls, user, include_pending=False):
+    def latest_from_user(cls, user, include_pending=False, titleId=None):
         '''
         Gets all clips, saved and unsaved
 
@@ -278,17 +284,20 @@ class Clip(object):
         :param bool include_pending: whether to ignore clips that are not
             yet uploaded. These clips will have thumbnails and media_url
             set to ``None``
-
+        :param int or string titleId: Restrict to a single game title
         :returns: Iterator of :class:`~xbox.Clip` instances
         '''
 
-        url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/clips'
-        resp = xbox.client._get(url % user.xuid)
+        if titleId:
+            url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/titles/%s/clips' % (user.xuid, titleId)
+        else:
+            url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/clips' % user.xuid
+        resp = xbox.client._get(url)
         json = resp.json()
         data = json['gameClips']
 
         while json['pagingInfo']['continuationToken']:
-            resp = xbox.client._get(url % user.xuid + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
+            resp = xbox.client._get(url + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
             json = resp.json()
             data += json['gameClips']
 
@@ -363,7 +372,7 @@ class Screenshot(object):
 
     @classmethod
     @authenticates
-    def latest_from_user(cls, user, include_pending=False):
+    def latest_from_user(cls, user, include_pending=False, titleId=None):
         '''
         Gets all screenshots, saved and unsaved
 
@@ -371,17 +380,20 @@ class Screenshot(object):
         :param bool include_pending: whether to ignore screenshots that are not
             yet uploaded. These screenshots will have thumbnails and media_url
             set to ``None``
-
+        :param int or string titleId: Restrict to a single game title
         :returns: Iterator of :class:`~xbox.Screenshot` instances
         '''
 
-        url = 'https://gameclipsmetadata.xboxlive.com/users/xuid(%s)/screenshots'
-        resp = xbox.client._get(url % user.xuid)
+        if titleId:
+            url = 'https://screenshotsmetadata.xboxlive.com/users/xuid(%s)/titles/%s/screenshots/saved' % (user.xuid, titleId)
+        else:
+            url = 'https://screenshotsmetadata.xboxlive.com/users/xuid(%s)/screenshots/saved' % user.xuid
+        resp = xbox.client._get(url)
         json = resp.json()
         data = json['screenshots']
 
         while json['pagingInfo']['continuationToken']:
-            resp = xbox.client._get(url % user.xuid + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
+            resp = xbox.client._get(url + '?continuationToken=%s' % json['pagingInfo']['continuationToken'])
             json = resp.json()
             data += json['screenshots']
 
